@@ -10,8 +10,11 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
 const authRoute = require("./routes/auth-route");
+const categoryRoute = require("./routes/category-route");
+const transactionRoute = require("./routes/transaction-route");
 const notFoundMiddleware = require("./middlewares/not-found");
 const errorMiddleware = require("./middlewares/error");
+const authenticateMiddleware = require("./middlewares/authenticate");
 
 const app = express();
 
@@ -31,6 +34,10 @@ app.use(express.json());
 
 // auth router middleware
 app.use("/auth", authRoute);
+// category router middleware
+app.use("/category", authenticateMiddleware, categoryRoute);
+// transaction router middleware
+app.use("/transaction", authenticateMiddleware, transactionRoute);
 
 // 404 not found middleware
 app.use(notFoundMiddleware);
