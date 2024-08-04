@@ -1,31 +1,18 @@
-const Joi = require("joi");
+const {
+  validateRegister,
+  validateLogin
+} = require("../validators/auth-validator");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const { User } = require("../models");
 const createError = require("../utils/create-error");
 
-const registerSchema = Joi.object({
-  email: Joi.string().required().email().messages({
-    "string.email": "email is invalid",
-    "any.required": "email is required"
-  }),
-  password: Joi.string().required().min(6).trim(),
-  confirmPassword: Joi.string().required().valid(Joi.ref("password")).strip()
-});
-
-const loginSchema = Joi.object({
-  email: Joi.string().required(),
-  password: Joi.string().required()
-});
-
 exports.register = async (req, res, next) => {
   try {
     // 1. validate input (req.body)
-    const { value, error } = registerSchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
+    const value = validateRegister(req.body);
 
     // 2. search user by email
     const user = await User.findOne({ where: { email: value.email } });
@@ -37,7 +24,9 @@ exports.register = async (req, res, next) => {
     await User.create(value);
 
     // 4. sent response
-    res.status(201).json({ message: "register success" });
+    res
+      .status(201)
+      .json({ message: "register success.  please log in to continue" });
   } catch (err) {
     next(err);
   }
@@ -46,10 +35,7 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     // 1. validate input (req.body)
-    const { value, error } = loginSchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
+    const value = validateLogin(req.body);
 
     // 2. search user by email
     const user = await User.findOne({ where: { email: value.email } });
@@ -65,12 +51,12 @@ exports.login = async (req, res, next) => {
 
     // 4. gen jwt
     const payload = { id: user.id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
       expiresIn: process.env.JWT_EXPIRES_IN
     });
 
     // 5. sent response
-    res.status(200).json({ token });
+    res.status(200).json({ accessToken });
   } catch (err) {
     next(err);
   }

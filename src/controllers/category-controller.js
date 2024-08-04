@@ -1,40 +1,23 @@
-const Joi = require("joi");
+const {
+  validateCreateCategory,
+  validateUpdateCategory
+} = require("../validators/category-validator");
 
 const { Category } = require("../models");
-
-const createCategorySchema = Joi.object({
-  name: Joi.string().required().trim().messages({
-    "any.required": "name is required",
-    "string.empty": "name is required",
-    "string.base": "name must be a string"
-  }),
-  type: Joi.string().required().trim().messages({
-    "any.required": "type is required",
-    "string.empty": "type is required",
-    "string.base": "type must be a string"
-  })
-});
-
-const updateCategorySchema = Joi.object({
-  name: Joi.string().trim(),
-  type: Joi.string().trim()
-}).min(1);
 
 exports.createCategory = async (req, res, next) => {
   try {
     // request body name, type
     // 1. validate data (req.body)
-    const { value, error } = createCategorySchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
+    const value = validateCreateCategory(req.body);
 
     // 2. save data to database
     value.userId = req.user.id;
-    Category.create(value);
+
+    const category = await Category.create(value);
 
     // 3. sent response
-    res.status(201).json({ message: "create category success" });
+    res.status(201).json({ category });
   } catch (err) {
     next(err);
   }
@@ -54,7 +37,7 @@ exports.getAllCategory = async (req, res, next) => {
 };
 exports.getCategoryById = async (req, res, next) => {
   try {
-    const categoryId = req.params.id;
+    const categoryId = req.params.categoryId;
 
     const category = await Category.findOne({
       where: { id: categoryId, userId: req.user.id }
@@ -66,15 +49,11 @@ exports.getCategoryById = async (req, res, next) => {
 };
 exports.updateCategory = async (req, res, next) => {
   try {
-    const categoryId = req.params.id;
-
     // request body name?, type?
     // request params id
+    const categoryId = req.params.categoryId;
     // 1. validate data (req.body)
-    const { value, error } = updateCategorySchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
+    const value = validateUpdateCategory(req.body);
 
     // 2. update category table
     await Category.update(value, {
@@ -89,7 +68,7 @@ exports.updateCategory = async (req, res, next) => {
 };
 exports.deleteCategory = async (req, res, next) => {
   try {
-    const categoryId = req.params.id;
+    const categoryId = req.params.categoryId;
     await Category.destroy({ where: { id: categoryId, userId: req.user.id } });
     res.status(204).json();
   } catch (err) {
